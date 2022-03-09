@@ -16,11 +16,13 @@ Including another URLconf
 from django.contrib import admin
 from django.urls import path, include
 from . import views
+from . import api
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api-auth/', include('rest_framework.urls')),
-    path('list-videos/', views.list_videos, name='list-videos'),
+    path('list-videos/', api.GetVideos.as_view(), name='list-videos'),
+    path('get-videos/', views.get_videos, name='get-videos'),
     path('', include('YoutubeAuth.urls')),
-
+    path('', views.index, name='index'),
 ]

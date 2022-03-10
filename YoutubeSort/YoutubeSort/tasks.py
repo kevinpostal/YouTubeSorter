@@ -3,7 +3,10 @@ from celery.utils.log import get_task_logger
 
 logger = get_task_logger(__name__)
 
+from .util import get_youtube_liked_videos
+
 
 @shared_task
-def add(x, y):
-    return x + y
+def get_youtube_liked_videos_task(credentials):
+    get_youtube_liked_videos(credentials)
+    return

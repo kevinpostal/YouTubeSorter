@@ -1,9 +1,11 @@
+import google.oauth2.credentials
+import googleapiclient.discovery
 from asgiref.sync import async_to_sync
 from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
-from .util import get_youtube_liked_videos
+from .tasks import get_youtube_liked_videos_task
 
 
 async def index(request):
@@ -12,10 +14,12 @@ async def index(request):
 
 def get_videos(request):
     # del request.session['credentials']
-    credentials = request.session.get("credentials", False)
+    credentials_dict = request.session.get("credentials", False)
+    credentials = google.oauth2.credentials.Credentials(**credentials_dict)
 
     if credentials:
-        # await get_youtube_liked_videos(credentials)
+        # get_youtube_liked_videos_task.delay(credentials)
+
         return HttpResponse("GOOD")
     else:
         return redirect(reverse("auth"))

@@ -3,97 +3,152 @@
 
 <!DOCTYPE html>
 <html>
+  <head>
+    <link
+      href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css"
+      rel="stylesheet"
+    />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui"
+    />
+  </head>
 
-<head>
-    <link href="https://fonts.googleapis.com/css?family=Roboto:100,300,400,500,700,900" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/@mdi/font@6.x/css/materialdesignicons.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.min.css" rel="stylesheet">
-    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, minimal-ui">
-</head>
-
-<body>
+  <body>
     <div id="app">
-        <v-app id="inspire">
-            <v-card-title>
-                Youtube Liked Videos
-                <v-spacer></v-spacer>
-                <v-text-field v-model="search" append-icon="mdi-magnify" label="Search" single-line hide-details></v-text-field>
-            </v-card-title>
-            <v-data-table dense :search="search" item-key="track" :headers="headers" :items="videos" :items-per-page="5" class="elevation-1" @click:row="openUrl">
-                <template #item.image="{ item }">
-                    <v-img :src="item.image" :alt="item.track" height="100px" width="100px"></v-img>
-                </template>
-            </v-data-table>
-            <button v-on:click="get_videos()">Load Videos</button>
-        </v-app>
+      <v-app id="inspire">
+        <v-card-title>
+          Youtube Liked Videos
+          <v-spacer></v-spacer>
+          <v-text-field
+            v-model="search"
+            append-icon="mdi-magnify"
+            label="Search"
+            single-line
+            hide-details
+          ></v-text-field>
+        </v-card-title>
+        <v-container class="grey lighten-5">
+          <v-row>
+            <v-col cols="24">
+              <v-card class="pa-24" outlined tile>
+                <v-data-table
+                  dense
+                  :search="search"
+                  item-key="tite"
+                  :headers="headers"
+                  :items="videos"
+                  :items-per-page="5"
+                  class="elevation-5 "
+                  @click:row="openUrl"
+                >
+                  <template #item.image="{ item }">
+                    <v-img
+                      :src="item.image_url"
+                      :alt="item.track"
+                      width="120px"
+                      height="90px"
+                    ></v-img>
+                  </template>
+                </v-data-table>
+              </v-card>
+            </v-col>
+          </v-row>
+          <v-row>
+            <v-col cols="24">
+            <v-card class="pa-24" outlined >
+              <v-btn
+                block
+                color="primary"
+                elevation="2"
+                large
+                v-on:click="get_videos()"
+                >Load Videos</v-btn
+              >
+              </vcard>
+            </v-col>
+          </v-row>
+        </v-container>
+      </v-app>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/vue@2.x/dist/vue.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/vuetify@2.x/dist/vuetify.js"></script>
     <script>
-        new Vue({
-            el: '#app',
-            vuetify: new Vuetify(),
-            data: {
-                headers: [
-                    {
-                        text: 'Image',
-                        sortable: false,
-                        value: 'image',
-                    },
-                    {
-                        text: 'Artist',
-                        align: 'start',
-                        sortable: true,
-                        value: 'artist',
-                    },
-                    {
-                        text: 'Track',
-                        sortable: true,
-                        value: 'track',
-                    }
-                ],
-                videos: [
+      new Vue({
+          el: '#app',
+          vuetify: new Vuetify(),
+          data: {
+              headers: [
+                  {
+                      text: 'Image',
+                      sortable: false,
+                      value: 'image',
+                  },
+                  {
+                      text: 'Title',
+                      align: 'start',
+                      sortable: true,
+                      value: 'title',
+                  },
+                  {
+                      text: 'Artist',
+                      align: 'start',
+                      sortable: true,
+                      value: 'artist',
+                  },
+                  {
+                      text: 'Track',
+                      sortable: true,
+                      value: 'track',
+                  }
+              ],
+              videos: {{video_list|safe}},
+              search: ''
+          },
+          created: function () {
+              console.log("Starting connection to WebSocket Server")
+              let state  = this
+              this.connection = new WebSocket("ws://"+ window.location.host +"/ws/list-videos")
 
-                ],
-                search: ''
-            },
-            created: function () {
-                console.log("Starting connection to WebSocket Server")
-                let state  = this
-                this.connection = new WebSocket("ws://"+ window.location.host +"/ws/list-videos")
+              this.connection.onmessage = function (event) {
+                  const data = JSON.parse(event.data);
+                  state.videos.push(
+                      {
+                          title: data.message.title,
+                        image_url: data.message.image_url,
+                        artist: data.message.artist,
+                        track: data.message.track,
+                        url: data.message.url
+                      }
+                  )
+              }
 
-                this.connection.onmessage = function (event) {
-                    const data = JSON.parse(event.data);
-                    state.videos.push(
-                        { 
-                          image: data.message.snippet.thumbnails.default.url,
-                          artist: data.message.artist,
-                          track: data.message.track,
-                          url: data.message.url
-                        }
-                    )
-                }
+              this.connection.onopen = function (event) {
+                  console.log("Successfully connected to the websocket server...")
+              }
+          },
+          methods: {
+              openUrl(item, index, event) {
+                  window.open(item.url, "_blank","location=1,status=1,scrollbars=1,resizable=no,width=560,height=515,menubar=no,toolbar=no");
+              },
 
-                this.connection.onopen = function (event) {
-                    console.log("Successfully connected to the websocket server...")
-                }
-            },
-            methods: {
-                openUrl(item, index, event) {
-                    window.open(item.url, "_blank","location=1,status=1,scrollbars=1,resizable=no,width=560,height=515,menubar=no,toolbar=no");    
-                },
-                
-                get_videos: function () {
-                    console.log(this.headers);
-                    this.connection.send(JSON.stringify({
-                        'message': "get_videos"
-                    }));
-                }
-            }
-        })
+              get_videos: function () {
+                  console.log(this.headers);
+                  this.connection.send(JSON.stringify({
+                      'message': "get_videos"
+                  }));
+              }
+          }
+      })
     </script>
-
-</body>
-
+  </body>
 </html>

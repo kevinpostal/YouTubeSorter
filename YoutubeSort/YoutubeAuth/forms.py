@@ -1,10 +1,6 @@
 from django import forms
 from django.contrib.auth import get_user_model
-from django.contrib.auth.forms import (
-    AuthenticationForm,
-    ReadOnlyPasswordHashField,
-    UsernameField,
-)
+from django.contrib.auth.forms import ReadOnlyPasswordHashField
 
 User = get_user_model()
 
@@ -28,7 +24,6 @@ class UserAdminCreationForm(forms.ModelForm):
         fields = ["email"]
 
     def save(self, commit=True):
-        # Save the provided password in hashed format
         user = super().save(commit=False)
         user.set_password(self.cleaned_data["password"])
         if not user.client_id:
@@ -52,7 +47,6 @@ class UserAdminChangeForm(forms.ModelForm):
         return self.initial["password"]
 
     def __init__(self, *args, **kwargs):
-        # first call parent's constructor
         super(UserAdminChangeForm, self).__init__(*args, **kwargs)
         # there's a `fields` property now
         self.fields["email"].required = False

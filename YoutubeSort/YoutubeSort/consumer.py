@@ -1,16 +1,19 @@
 import json
 
-from asgiref.sync import async_to_sync, sync_to_async
+from asgiref.sync import sync_to_async
 from channels.generic.websocket import AsyncWebsocketConsumer
+from django.contrib.auth import get_user_model
+from YoutubeSort.tasks import import_youtube_liked_videos_task
 
-from .tasks import get_youtube_liked_videos_task
+User = get_user_model()
 
 
 class IndexConsumer(AsyncWebsocketConsumer):
+
     async def connect(self):
+
         def _get_scope():
-            session = self.scope.get("session", {}).get("credentials")
-            self.credentials = session
+            self.credentials = self.scope["session"].get("credentials")
             return  # self.scope["session"]["credentials"]
 
         self.room_name = "test"
@@ -26,22 +29,25 @@ class IndexConsumer(AsyncWebsocketConsumer):
 
     # Receive message from WebSocket
     async def receive(self, text_data):
-        # print("Receive: {}".format(text_data))
+        print("Receive: {}".format(text_data))
         text_data_json = json.loads(text_data)
         message = text_data_json["message"]
         if message == "get_videos":
-            get_youtube_liked_videos_task.delay(self.credentials)
+            # user = await sync_to_async(User.objects.get)(id=self.scope["session"]["_auth_user_id"])
+            import_youtube_liked_videos_task.delay(self.scope["session"]["_auth_user_id"])
         else:
-            pass
+            print("else")
             # Send message to room group
             await self.channel_layer.group_send(
-                self.room_name, {"type": "chat_message", "message": message}
+                self.room_name, {
+                    "type": "chat_message",
+                    "message": message
+                }
             )
 
     # Receive message from room group
     async def chat_message(self, event):
-        # print("Receive: {}".format(event))
+        print("Receive Group: {}".format(event))
         message = event["message"]
-
         # Send message to WebSocket
         await self.send(text_data=json.dumps({"message": message}))

@@ -1,16 +1,14 @@
 import os
 
-import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
 from django.conf import settings
 from django.contrib.auth import login
 from django.contrib.auth.decorators import user_passes_test
-from django.http import HttpResponse, HttpResponseNotFound
 from django.shortcuts import redirect
 from django.urls import reverse
-
-from .models import Credentials
+from YoutubeAuth.models import Credentials
+from YoutubeAuth.utils import credentials_to_dict
 
 if settings.DEBUG:
     os.environ["OAUTHLIB_RELAX_TOKEN_SCOPE"] = "1"
@@ -24,20 +22,12 @@ SCOPES = [
 API_SERVICE_NAME = "youtube"
 API_VERSION = "v3"
 
-
-def credentials_to_dict(credentials):
-    return {
-        "token": credentials.token,
-        "refresh_token": credentials.refresh_token,
-        "token_uri": credentials.token_uri,
-        "client_id": credentials.client_id,
-        "client_secret": credentials.client_secret,
-        "scopes": credentials.scopes,
-    }
+URL = "https://6d58-2600-6c50-7f-5649-a504-79b4-bfc6-c1a3.ngrok.io/oauth2callback/"
 
 
 @user_passes_test(lambda u: u.is_anonymous, login_url="/", redirect_field_name="")
 def oauth2callback(request):
+
     state = {}
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES, state=state
@@ -53,11 +43,11 @@ def oauth2callback(request):
     # ACTION ITEM: In a production app, you likely want to save these
     #              credentials in a persistent database instead.
     credentials = flow.credentials
+    youtube = googleapiclient.discovery.build("youtube", "v3", credentials=credentials)
 
     try:
-        youtube = googleapiclient.discovery.build("youtube", "v3", credentials=credentials)
         youtube.videos().list(myRating="like", part="snippet", maxResults=500).execute()
-    except:
+    except Exception:
         return redirect(reverse("auth"))
 
     service = googleapiclient.discovery.build("oauth2", "v2", credentials=credentials)
@@ -67,19 +57,13 @@ def oauth2callback(request):
         email=email, defaults=credentials_to_dict(credentials)
     )
 
-    # Credentials.objects.filter(client_id=flow.credentials.client_id).update(
-    #     **credentials_to_dict(credentials)
-    # )
     request.session["credentials"] = credentials_to_dict(credentials)
     login(request, user)
-    return redirect(reverse("list-videos"))
+    return redirect(reverse("index"))
 
 
 @user_passes_test(lambda u: u.is_anonymous, login_url="/", redirect_field_name="")
 def auth(request):
-    # if request.session.get("credentials", False):
-    #    return redirect(reverse("list-videos"))
-
     # Create flow instance to manage the OAuth 2.0 Authorization Grant Flow steps.
     flow = google_auth_oauthlib.flow.Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE, scopes=SCOPES
@@ -99,4 +83,5 @@ def auth(request):
         # Enable incremental authorization. Recommended as a best practice.
         include_granted_scopes="true",
     )
+
     return redirect(authorization_url)

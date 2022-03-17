@@ -1,9 +1,9 @@
-import google.oauth2.credentials
-import google_auth_oauthlib.flow
-import googleapiclient.discovery
-import youtube_dl
-from asgiref.sync import async_to_sync, sync_to_async
 from channels.layers import get_channel_layer
+from google.auth.transport.requests import Request as GoogleAuthTransportRequest
+from google.oauth2.credentials import Credentials as GoogleOauth2Credentials
+from googleapiclient.discovery import build as googleapiclient_discovery_build
+from YoutubeAuth.models import Credentials
+from YoutubeSort.models import YoutubeVideo
 
 SCOPES = ["https://www.googleapis.com/auth/youtube.force-ssl"]
 API_SERVICE_NAME = "youtube"
@@ -11,49 +11,42 @@ API_VERSION = "v3"
 
 channel_layer = get_channel_layer()
 
-ydl = youtube_dl.YoutubeDL({"cookiefile": "youtube.com_cookies.txt"})
+# def import_youtube_liked_videos(credentials_obj: Credentials):
+#     """Grab all youtube liked videos using google[youtube] api.
 
+#     Args:
+#         credentials_obj (Credentials): Credentials / `django user` object.
 
-async def get_artist_and_track(url):
-    with ydl:
-        video = ydl.extract_info(url, download=False)
-        artist = video.get("artist")
-        track = video.get(
-            "track",
-        )
-        return {"artist": artist, "track": track}
+#     """
 
+#     credentials = GoogleOauth2Credentials(**credentials_obj.credentials_to_dict())
+#     youtube = googleapiclient_discovery_build(
+#         API_SERVICE_NAME,
+#         API_VERSION,
+#         credentials=credentials,
+#     )
 
-def get_youtube_liked_videos(credentials):
-    print("Running task")
-    credentials = google.oauth2.credentials.Credentials(**credentials)
-    youtube = googleapiclient.discovery.build(
-        API_SERVICE_NAME, API_VERSION, credentials=credentials
-    )
-    results = youtube.videos().list(myRating="like", part="snippet", maxResults=500).execute()
-    token = results.get("nextPageToken", None)
+#     try:
+#         results = youtube.videos().list(myRating="like", part="snippet", maxResults=50).execute()
+#     except Exception:
+#         request = GoogleAuthTransportRequest()
+#         credentials.refresh(request)
+#         youtube = googleapiclient_discovery_build(
+#             API_SERVICE_NAME,
+#             API_VERSION,
+#             credentials=credentials,
+#         )
+#         results = youtube.videos().list(myRating="like", part="snippet", maxResults=50).execute()
 
-    while token != None:
-        for item in results["items"]:
-            url = "https://www.youtube.com/watch?v={}".format(item.get("id"))
-            title = item.get("snippet").get("title")
-            artist, track = async_to_sync(get_artist_and_track)(url).values()
-            # artist, track = get_artist_and_track(url).values()
+#     token = results.get("nextPageToken", None)
 
-            if artist and track and url:
-                item["artist"] = artist
-                item["track"] = track
-                item["url"] = url
-                async_to_sync(channel_layer.group_send)(
-                    "test",
-                    {
-                        "type": "chat.message",
-                        "message": item,
-                    },
-                )
-                # return
+#     while token is not None:
+#         for item in results["items"]:
+#             title = item.get("snippet", {}).get("title")
+#             image_url = item.get("snippet", {}).get("thumbnails", {}).get("default", {}).get("url")
+#             obj_dict = {"title": title, "user": credentials_obj, "image_url": image_url}
+#             obj, _ = YoutubeVideo.objects.update_or_create(yid=item.get("id"), defaults=obj_dict)
+#             item["obj_id"] = obj.id
 
-        results = youtube.videos().list(myRating="like", part="snippet", pageToken=token).execute()
-        token = results.get("nextPageToken", None)
-
-    return
+#         results = youtube.videos().list(myRating="like", part="snippet", pageToken=token).execute()
+#         token = results.get("nextPageToken", None)

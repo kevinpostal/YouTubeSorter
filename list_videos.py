@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import os
-import flask
-import requests
 
+import flask
 import google.oauth2.credentials
 import google_auth_oauthlib.flow
 import googleapiclient.discovery
+import requests
 
 # This variable specifies the name of a file that contains the OAuth 2.0
 # information for this application, including its client_id and client_secret.
@@ -51,14 +51,12 @@ def test_api_request():
 
     data = []
 
-    while token != None:
+    while token is not None:
         for item in results["items"]:
             data.append(item.get("snippet").get("channelTitle"))
 
         results = (
-            youtube.videos()
-            .list(myRating="like", part="snippet", pageToken=token)
-            .execute()
+            youtube.videos().list(myRating="like", part="snippet", pageToken=token).execute()
         )
         token = results.get("nextPageToken", None)
 
@@ -120,8 +118,8 @@ def oauth2callback():
 def revoke():
     if "credentials" not in flask.session:
         return (
-            'You need to <a href="/authorize">authorize</a> before '
-            + "testing the code to revoke credentials."
+            'You need to <a href="/authorize">authorize</a> before ' +
+            "testing the code to revoke credentials."
         )
 
     credentials = google.oauth2.credentials.Credentials(**flask.session["credentials"])
@@ -159,25 +157,22 @@ def credentials_to_dict(credentials):
 
 def print_index_table():
     return (
-        "<table>"
-        + '<tr><td><a href="/test">Test an API request</a></td>'
-        + "<td>Submit an API request and see a formatted JSON response. "
-        + "    Go through the authorization flow if there are no stored "
-        + "    credentials for the user.</td></tr>"
-        + '<tr><td><a href="/authorize">Test the auth flow directly</a></td>'
-        + "<td>Go directly to the authorization flow. If there are stored "
-        + "    credentials, you still might not be prompted to reauthorize "
-        + "    the application.</td></tr>"
-        + '<tr><td><a href="/revoke">Revoke current credentials</a></td>'
-        + "<td>Revoke the access token associated with the current user "
-        + "    session. After revoking credentials, if you go to the test "
-        + "    page, you should see an <code>invalid_grant</code> error."
-        + "</td></tr>"
-        + '<tr><td><a href="/clear">Clear Flask session credentials</a></td>'
-        + "<td>Clear the access token currently stored in the user session. "
-        + '    After clearing the token, if you <a href="/test">test the '
-        + "    API request</a> again, you should go back to the auth flow."
-        + "</td></tr></table>"
+        "<table>" + '<tr><td><a href="/test">Test an API request</a></td>' +
+        "<td>Submit an API request and see a formatted JSON response. " +
+        "    Go through the authorization flow if there are no stored " +
+        "    credentials for the user.</td></tr>" +
+        '<tr><td><a href="/authorize">Test the auth flow directly</a></td>' +
+        "<td>Go directly to the authorization flow. If there are stored " +
+        "    credentials, you still might not be prompted to reauthorize " +
+        "    the application.</td></tr>" +
+        '<tr><td><a href="/revoke">Revoke current credentials</a></td>' +
+        "<td>Revoke the access token associated with the current user " +
+        "    session. After revoking credentials, if you go to the test " +
+        "    page, you should see an <code>invalid_grant</code> error." + "</td></tr>" +
+        '<tr><td><a href="/clear">Clear Flask session credentials</a></td>' +
+        "<td>Clear the access token currently stored in the user session. " +
+        '    After clearing the token, if you <a href="/test">test the ' +
+        "    API request</a> again, you should go back to the auth flow." + "</td></tr></table>"
     )
 
 

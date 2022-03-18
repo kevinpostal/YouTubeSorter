@@ -71,7 +71,7 @@ class YoutubeVideo(models.Model):
 
     def set_artist_and_track(self):
         """Grab and save the "artist" name & "track" title if found."""
-        current_app.send_task("YoutubeSort.tasks.set_artist_and_track", (self.id,))
+        current_app.send_task("YoutubeSort.tasks.set_artist_and_track", (self.id, self.url))
 
 
 @receiver(post_save, sender=YoutubeVideo, dispatch_uid="scrape_artist_and_track_signal")
@@ -88,10 +88,9 @@ def import_youtube_artist_and_track_signal(sender: YoutubeVideo, instance, creat
     if created:
         instance.set_artist_and_track()
     else:
-        async_to_sync(channel_layer.group_send)(
-            "test",
-            {
-                "type": "chat.message",
-                "message": instance.model_to_dict(),
-            },
-        )
+        pass
+        # async_to_sync(channel_layer.group_send
+        #               )("test", {
+        #                   'type': 'chat.message',
+        #                   'message': instance.model_to_dict(),
+        #               })

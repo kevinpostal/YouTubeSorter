@@ -5,26 +5,58 @@ services:
     build:
       context: ./
       dockerfile: YoutubeSort/Dockerfile
-    command: tail -f /dev/null #python YoutubeSort/manage.py runserver 0.0.0.0:8000
+    command: sh docker-entrypoint.sh
+    image: web_app
     volumes:
-      - .:/app
+      - .:/code
     working_dir: /code/YoutubeSort
     ports:
       - 8000:8000
     env_file:
-      - YoutubeSort/.env.dev
+      - "env.dev"
+    tty: true
+    stdin_open: true
     depends_on:
-      - db
-      - redis
+      rabbitmq:
+        condition: service_healthy
+      db:
+        condition: service_started
+      redis:
+        condition: service_started
+    container_name: db
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    logging:
+      driver: none
+    healthcheck:
+      #test: rabbitmq-diagnostics -q ping
+      test: rabbitmq-diagnostics -q check_running && rabbitmq-diagnostics -q check_local_alarms
+      interval: 15s
+      timeout: 15s
+      retries: 4
+    ports:
+      - 5672:5672
+      - 15672:15672
+    environment:
+        - RABBITMQ_DEFAULT_USER=admin
+        - RABBITMQ_DEFAULT_PASS=django
   redis:
     image: redis:6.2-alpine
+    restart: always
+    logging:
+      driver: none
     ports:
       - 6379:6379
     command: redis-server --loglevel warning --save 60 1
     volumes:
       - redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli","ping"]
   db:
     image: postgres:13.0-alpine
+    logging:
+      driver: none
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     environment:
@@ -33,6 +65,51 @@ services:
       - POSTGRES_DB=django
     ports:
       - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U django"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  celery-worker-beat:
+    image: web_app
+    logging:
+      driver: none
+    container_name: celery-worker-beat
+    tty: true
+    stop_grace_period: "${DOCKER_STOP_GRACE_PERIOD:-3s}"
+    restart: on-failure
+    command: celery -A YoutubeSort beat -l info
+    working_dir: /code/YoutubeSort
+    volumes:
+      - .:/code
+    env_file:
+      - "env.dev"
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      db:
+        condition: service_started
+  celery-worker:
+    image: web_app
+    tty: true
+    container_name: celery-worker
+    command: bash -c "rm -rf *.pid; celery -A YoutubeSort multi start w1 w2 w3 w4 -E -c 3 --loglevel=INFO --pidfile=celery-worker-%n.pid --logfile=celery-worker.log && tail -f celery-worker.log"
+    #command: bash -c "celery -A YoutubeSort worker --pool=gevent --concurrency=500"
+    #command: bash -c "celery -A YoutubeSort worker -E -P eventlet --concurrency=500"
+
+    working_dir: /code/YoutubeSort
+    volumes:
+      - .:/code
+    env_file:
+      - "env.dev"
+    stop_grace_period: "${DOCKER_STOP_GRACE_PERIOD:-3s}"
+    restart: on-failure
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+      db:
+        condition: service_started
+
 volumes:
   redis:
     driver: local

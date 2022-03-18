@@ -23,6 +23,7 @@ def get_videos(request):
     credentials = google.oauth2.credentials.Credentials(**credentials_dict)
 
     if credentials:
+        request.user.import_youtube_liked_videos()
         return HttpResponse("GOOD")
     else:
         return redirect(reverse("auth"))

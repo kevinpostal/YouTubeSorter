@@ -29,6 +29,7 @@ INSTALLED_APPS = [
     # 3rd Party
     "channels",
     "rest_framework",
+    "django_celery_results",
     # Custom
     "YoutubeSort",
     "YoutubeAuth",
@@ -142,15 +143,23 @@ CHANNEL_LAYERS = {
 
 # CELERY STUFF
 
-broker_url = "redis://localhost:6379"
-RESULT_BACKEND = "redis://localhost:6379"
-#RESULT_BACKEND = 'django-db'
-#CELERY_RESULT_BACKEND = RESULT_BACKEND
+broker_url = os.environ.get("BROKER_URL", "redis://localhost:6379")
+result_persistent = True
+task_send_sent_event = True
+#accept_content = ['application/json']\
+accept_content = ['application/x-msgpack']
 
-# ACCEPT_CONTENT = ["application/json"]
-# TASK_SERIALIZER = "json"
-# RESULT_SERIALIZER = "json"
+task_serializer = 'msgpack'
+result_serializer = 'msgpack'
+result_backend = 'django-db'
+CELERY_TASK_ALWAYS_EAGER = False
+CELERY_TASK_TIME_LIMIT = 20 * 60  # set a max task time of 20 minutes
+CELERY_TASK_TRACK_STARTED = True
+CELERY_RESULT_EXPIRES = 60 * 60 * 24 * 5  # seconds in 5 days
+task_acks_late = False
+worker_prefetch_multiplier = 128
 
+###
 LOGGING = {
     "version": 1,
     "disable_existing_loggers": False,

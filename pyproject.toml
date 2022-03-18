@@ -9,14 +9,18 @@ python = "^3.10"
 Django = "^4.0.3"
 google-api-python-client = "^2.40.0"
 youtube_dl = "^2021.12.17"
-django-channels = "^0.7.0"
-celery = "^5.2.3"
-redis = "^4.1.4"
-channels-redis = "^3.4.0"
+celery = {extras = ["amqp", "redis", "auth", "msgpack", "eventlet", "gevent"], version = "^5.2.3"}
 psycopg2-binary = "^2.9.3"
 djangorestframework = "^3.13.1"
 google-auth-oauthlib = "^0.5.0"
 django-celery-results = "^2.3.0"
+channels-redis = "^3.4.0"
+channels = "^3.0.4"
+redis = "^4.1.4"
+PyAMQP = "^0.1.0"
+asyncio = "^3.4.3"
+eventlet = "^0.33.0"
+
 
 [tool.poetry.dev-dependencies]
 django-debug-toolbar = "^3.2.4"
@@ -36,6 +40,7 @@ isort = "^5.10.1"
 django-stubs-ext = "^0.3.1"
 django-extensions = "^3.1.5"
 Werkzeug = "^2.0.3"
+ipython = "^8.1.1"
 
 
 [build-system]

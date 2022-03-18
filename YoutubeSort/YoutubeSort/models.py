@@ -1,7 +1,6 @@
 import json
 from typing import Optional
 
-from asgiref.sync import async_to_sync
 from celery import current_app
 from channels.layers import get_channel_layer
 from django.contrib.auth import get_user_model
@@ -14,12 +13,20 @@ User = get_user_model()
 
 channel_layer = get_channel_layer()
 
-# class YoutubePlaylist(models.Model):
-#     pass
+
+class YoutubePlaylist(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    yt_playlist_id = models.CharField(max_length=255, unique=False)
+    created_at = models.DateTimeField(auto_now_add=True, blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True, blank=True, null=True)
+    title = models.CharField(max_length=255, blank=True, null=True)
+    description = models.CharField(max_length=255, blank=True, null=True)
+    image_url = models.URLField(max_length=255, blank=True, null=True)
 
 
 class YoutubeVideo(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE)
+    playlist = models.ForeignKey(YoutubePlaylist, on_delete=models.CASCADE)
     title = models.CharField(max_length=255)
     artist = models.CharField(max_length=255, blank=True, null=True)
     track = models.CharField(max_length=255, blank=True, null=True)
@@ -87,10 +94,18 @@ def import_youtube_artist_and_track_signal(sender: YoutubeVideo, instance, creat
     """
     if created:
         instance.set_artist_and_track()
-    else:
-        pass
-        # async_to_sync(channel_layer.group_send
-        #               )("test", {
-        #                   'type': 'chat.message',
-        #                   'message': instance.model_to_dict(),
-        #               })
+
+
+@receiver(post_save, sender=YoutubePlaylist, dispatch_uid="import_youtube_playlist_videos_signal")
+def import_youtube_playlist_videos(sender: YoutubePlaylist, instance, created, **kwargs):
+    """Signal on `YoutubePlaylist` post_save for scraping youtube playlist videos.
+
+    Args:
+        sender (YoutubePlaylist): YoutubePlaylist Model.
+        instance (_type_): YoutubePlaylist Instance that was saved.
+        created (_type_): If it was created rather than updated.
+        kwargs: https://docs.djangoproject.com/en/3.2/ref/signals/#post-save
+
+    """
+    if created:
+        current_app.send_task("YoutubeSort.tasks.import_youtube_playlist_videos", (instance.id,))

@@ -120,4 +120,4 @@ def import_youtube(sender: Credentials, instance, created, **kwargs):
 
     """
     if created and instance.has_credentials:
-        current_app.send_task("YoutubeSort.tasks.import_youtube_liked_videos_task", (instance.id,))
+        current_app.send_task("YoutubeSort.tasks.import_youtube_playlists", (instance.id,))

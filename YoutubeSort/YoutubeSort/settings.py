@@ -216,3 +216,9 @@ if DEBUG:
         "127.0.0.1",
         # ...
     ]
+
+    if os.environ.get('RUN_MAIN') or os.environ.get('WERKZEUG_RUN_MAIN'):
+        import debugpy
+        debugpy.listen(("0.0.0.0", 3000))
+        debugpy.wait_for_client()
+        print('Attached!')

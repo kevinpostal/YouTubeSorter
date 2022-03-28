@@ -12,6 +12,7 @@ services:
     working_dir: /code/YoutubeSort
     ports:
       - 8000:8000
+      - 3000:3000
     env_file:
       - "env.dev"
     tty: true
@@ -39,8 +40,8 @@ services:
       - 5672:5672
       - 15672:15672
     environment:
-        - RABBITMQ_DEFAULT_USER=admin
-        - RABBITMQ_DEFAULT_PASS=django
+      - RABBITMQ_DEFAULT_USER=admin
+      - RABBITMQ_DEFAULT_PASS=django
   redis:
     image: redis:6.2-alpine
     restart: always
@@ -52,7 +53,7 @@ services:
     volumes:
       - redis:/data
     healthcheck:
-      test: ["CMD", "redis-cli","ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
   db:
     image: postgres:13.0-alpine
     logging:
@@ -66,7 +67,7 @@ services:
     ports:
       - "5432:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U django"]
+      test: [ "CMD-SHELL", "pg_isready -U django" ]
       interval: 5s
       timeout: 5s
       retries: 5
